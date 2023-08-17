@@ -448,8 +448,9 @@ total.won <- total.opps[which(total.opps$Current_StageName == 'Closed Won'),]
 write_sheet(total.won,sheet.link,
             sheet = 'Total Won')
 
+est_now <- with_tz(Sys.time(), "America/New_York")
 range_write(sheet.link,
-            as.data.frame(paste0("Last Refreshed: ",Sys.time())),
+            as.data.frame(paste0("Last Refreshed: ",est_now)),
             range = "B27",
             col_names = FALSE,
             sheet = 'Summary',
