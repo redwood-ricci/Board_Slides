@@ -8,18 +8,15 @@ library(googlesheets4)
 sheet.link <- "https://docs.google.com/spreadsheets/d/1IRqNj6u8OP0Pc1zfouOd5Hc-pEHSX3xn-IbD8aQxAzU/edit#gid=984953587"
 rpt.date <- Sys.Date()
 snapshot.anchor <- '2023-07-19'
-# exclude.ids <- c( # any opp with a weird story that we want to exclude for w/e reason
-# These IDs were excluded from Q4 2022 board meeting slide
-# '0063t000013DQDeAAO',
-# '0063t000010lGnHAAU',
-# '0063t000010lL73AAE',
-# '0063t000013UwmhAAC'
-# )
-exclude.ids <- c()
+
+# put opportunity ID numbers in this variable separated by a comma to exclude them from the report
+exclude.ids <- c('0063t000013UwmhAAC')
  
+# this one below will exclude all Tidal
 # exclude <- query.bq("select Id from skyvia.Opportunity where Legacy_Id__c = 'Legacy Tidal' OR Product__c = 'Tidal'")
 # exclude.ids <- exclude$Id
 
+# Below is a list of past snapshot dates used for the board meeting
 # rpt.date <- as.Date('2022-12-31')
 # snapshot.anchor <- '2022-10-10' # this is the date the starting pipeline is calculated
 # rpt.date <- Sys.Date()#as.Date('2022-09-30')
@@ -94,8 +91,9 @@ forecasted.opps <- forecasted.opps[which(!(forecasted.opps$Id %in% exclude.ids))
 
 forecasted <- forecasted.opps %>%
   group_by(Id,quarter) %>%
-  summarise(qb_usd = max(qb_usd,na.rm = T),
-            forecast_usd = max(forecast_usd,na.rm = T))
+  summarise(qb_usd = suppressWarnings(max(qb_usd,na.rm = T)), # the suppressWarnings is because some groups have no non missing arguments
+            forecast_usd = suppressWarnings(max(forecast_usd,na.rm = T))
+            )
 
 forecasted.opps <- forecasted.opps[,c("Id","quarter")]
 forecasted.opps <- forecasted.opps[!duplicated(forecasted.opps),]
