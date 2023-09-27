@@ -6,7 +6,10 @@ library(googlesheets4)
 
 # sheet.link.v1 <- "https://docs.google.com/spreadsheets/d/1lyVuVVTAMhXE_ZBrjgqRTT6Xi490q3l8kzvDqbH32dw/edit#gid=984953587"
 sheet.link <- "https://docs.google.com/spreadsheets/d/1IRqNj6u8OP0Pc1zfouOd5Hc-pEHSX3xn-IbD8aQxAzU/edit#gid=984953587"
+
+# rpt.date is the date you want the report to reflect for Total Won & the end of the report
 rpt.date <- Sys.Date()
+# snapshot anchor is the date the quarter starting pipline should start
 snapshot.anchor <- '2023-07-19'
 
 # put opportunity ID numbers in this variable separated by a comma to exclude them from the report
