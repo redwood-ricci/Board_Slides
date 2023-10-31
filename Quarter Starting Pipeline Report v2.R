@@ -8,12 +8,14 @@ library(googlesheets4)
 sheet.link <- "https://docs.google.com/spreadsheets/d/1IRqNj6u8OP0Pc1zfouOd5Hc-pEHSX3xn-IbD8aQxAzU/edit#gid=984953587"
 
 # rpt.date is the date you want the report to reflect for Total Won & the end of the report
-rpt.date <- Sys.Date()
+rpt.date <-   # as.Date('2023-09-30')# Sys.Date()
+rpt.date <-   Sys.Date()
 # snapshot anchor is the date the quarter starting pipline should start
-snapshot.anchor <- '2023-07-19'
+# snapshot.anchor <- '2023-07-19' # '2023-10-11'
+snapshot.anchor <- '2023-10-11'
 
 # put opportunity ID numbers in this variable separated by a comma to exclude them from the report
-exclude.ids <- c('0063t000013UwmhAAC')
+exclude.ids <- c()
  
 # this one below will exclude all Tidal
 # exclude <- query.bq("select Id from skyvia.Opportunity where Legacy_Id__c = 'Legacy Tidal' OR Product__c = 'Tidal'")
@@ -117,7 +119,7 @@ o.SAO_Date__c,
 o.AccountId,
 o.StageName as previous_StageName,
 o.CloseDate as previous_CloseDate,
-o.ACV_Bookings__c / ct.ConversionRate as QB_USD,
+ot.ACV_Bookings__c / ct.ConversionRate as QB_USD,
 -- case when stagename = 'Closed Won' then 'Won' else 'Open' end as closed_won,
 case when ot.region__c in ('North America','LATAM') then 'NA' else 'EU + ROW' end as Region_Bucket_Account
 from
@@ -281,7 +283,7 @@ names(total.opps)[which(names(total.opps) == "Region_Bucket_Account")] <- "Merge
 coverage.table <- starting.pipe %>%
   group_by(Type,Merged_Account_Region_bucket) %>%
   summarise(
-    pipe = sum(QB_USD,na.rm = T),
+    pipe = sum(Current_QB_USD,na.rm = T),
     
    `Pipeline Won` = sum(Current_QB_USD[which(current_StageName == 'Closed Won' & Current_Closedate < q.end.date)],na.rm = T),
             
