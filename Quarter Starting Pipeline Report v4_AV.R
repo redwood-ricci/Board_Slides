@@ -7,11 +7,17 @@ library(googlesheets4)
 
 sheet.link <- "https://docs.google.com/spreadsheets/d/12R5q3IWXxxHb8kZ4RHU6zX4GEpz2bk9pMkf-rgbHGI0/edit#gid=0"
 
-# Q3 
+
+# Q1'24 check
+rpt.date <- as.Date('2024-01-01')
+snapshot.anchor <- '2023-11-27'
+
+
+# Current Quarter (Revert to this for Q4 to get table we had prior to last sync - Andres/Michael)
 # rpt.date is the date you want the report to reflect for Total Won & the end of the report
 #rpt.date <- as.Date('2023-11-27')
-rpt.date <- Sys.Date()
-snapshot.anchor <- '2023-11-09'
+ #rpt.date <- Sys.Date()
+ #snapshot.anchor <- '2023-11-27'
 # snapshot.anchor = last pipeline meeting start date
 
 # Q4
@@ -32,6 +38,8 @@ q.match <- gsub("\\.","",str_extract(q.form,"\\.."))
 y.match <- str_extract(q.form,"^2...")
 quarters.format <- paste0("Q",q.match,"-",y.match)
 
+# removed from starting query - and o.SAO_Date__c <= '",snapshot.anchor,"'
+
 starting.pipeline <- query.bq(
   paste0(
     "
@@ -43,18 +51,20 @@ o.Region__c,
 o.Account_Segment__c,
 o.Product__c,
 o.ACV_Bookings__c / ct.ConversionRate as QB_USD,
+h.qb_usd as QB_USD_Snapshot,
 o.StageName,
 o.CloseDate,
 o.LeadSource,
+o.SAO_Date__c,
 'Starting Pipe' as Mike_Type
 from `R_Data.Opportunity_History` h
 left join `skyvia.Opportunity` o on h.Id = o.Id
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
-where h.StageName not in ('Temporary','Data Quality')
-and h.type in ('New Business','Existing Business')
+where h.StageName not in ('Identify','Discovery','Demonstration','Untouched','Temporary','Data Quality','Closed Lost')
+and h.type in ('New Business')
 and cast(Snapshot_Time as date) = '",snapshot.anchor,"'
 and o.Test_Account__c = false
-and o.SAO_Date__c <= '",snapshot.anchor,"'
+and o.CreatedDate  <= '",snapshot.anchor,"'
 and h.CloseDate >= '",q.start.date,"'
 and h.CloseDate < '",q.end.date,"'
     "
@@ -123,18 +133,19 @@ o.ACV_Bookings__c / ct.ConversionRate as QB_USD,
 o.StageName,
 o.CloseDate,
 o.LeadSource,
+o.SAO_Date__c,
 'Pulled In' as Mike_Type
 from `skyvia.Opportunity` o
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
 left join `skyvia.OpportunityFieldHistory` h on h.OpportunityId = o.Id
-where o.StageName not in (Temporary','Data Quality') 
-and o.type in ('New Business','Existing Business')
+where o.StageName not in ('Identify','Discovery','Demonstration','Untouched','Temporary','Data Quality') -- ,'Closed Lost'
+and o.type in ('New Business')
 and o.Test_Account__c = false
 and field = 'CloseDate'
 and OldValue >= '",q.end.date,"'
 and NewValue <  '",q.end.date,"'
 and NewValue >=  '",q.start.date,"'
-and SAO_Date__c < '",q.end.date,"'
+and o.CreatedDate < '",q.end.date,"'
 and CloseDate <= '",q.end.date,"'
 and CloseDate >= '",q.start.date,"'
 and o.id not in (",string.in.for.query(starting.pipeline$Id),")
@@ -145,6 +156,10 @@ pulled.in <- pulled.in[which(pulled.in$clean != 'Cleaned Up'),]
 pulled.in$moved_date <- NULL
 pulled.in$clean <- NULL
 pulled.in <- make.geo(pulled.in)
+
+# remove SAO date logic - 
+#and o.SAO_Date__c >= '",q.start.date,"'
+#and o.SAO_Date__c < '",q.end.date,"'
 
 new.pipe <- query.bq(paste0(
   "
@@ -159,16 +174,17 @@ o.ACV_Bookings__c / ct.ConversionRate as QB_USD,
 o.StageName,
 o.CloseDate,
 o.LeadSource,
+o.SAO_Date__c,
 'New Pipe' as Mike_Type
 from `skyvia.Opportunity` o
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
-where o.StageName not in ('Temporary','Data Quality')
-and o.type in ('New Business','Existing Business')
+where o.StageName not in ('Identify','Discovery','Demonstration','Untouched','Temporary','Data Quality')
+and o.type in ('New Business')
 and o.Test_Account__c = false
-and o.SAO_Date__c >= '",q.start.date,"'
-and o.SAO_Date__c < '",q.end.date,"'
 and o.CloseDate >= '",q.start.date,"'
 and o.CloseDate < '",q.end.date,"'
+and o.CreatedDate  >= '",q.start.date,"'
+and o.CreatedDate  < '",q.end.date,"'
 and o.id not in (",string.in.for.query(starting.pipeline$Id),")
 and o.id not in (",string.in.for.query(pulled.in$Id),")
 "
@@ -190,13 +206,14 @@ o.ACV_Bookings__c / ct.ConversionRate as QB_USD,
 o.StageName,
 o.CloseDate,
 o.LeadSource,
+o.SAO_Date__c,
 'Pushed' as Mike_Type
 from `skyvia.Opportunity` o
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
-where o.StageName not in (Temporary','Data Quality')
-and o.type in ('New Business','Existing Business')
+where o.StageName not in ('Identify','Discovery','Demonstration','Untouched','Temporary','Data Quality')
+and o.type in ('New Business')
 and o.Test_Account__c = false
-and o.SAO_Date__c <= '",snapshot.anchor,"'
+and o.CreatedDate  <= '",snapshot.anchor,"'
 and o.CloseDate > '",q.end.date,"'
 and o.id in (",string.in.for.query(c(starting.pipeline$Id)),")
 "
@@ -218,12 +235,13 @@ o.ACV_Bookings__c / ct.ConversionRate as QB_USD,
 o.StageName,
 o.CloseDate,
 o.LeadSource,
+o.SAO_Date__c,
 'Total' as Mike_Type
 from `skyvia.Opportunity` o
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
 where (o.StageName = 'Closed Won' OR SAO_Date__c is not null)
 and o.StageName not in ('Temporary','Data Quality')
-and o.type in ('New Business','Existing Business')
+and o.type in ('New Business')
 and o.Test_Account__c = FALSE
 and o.CloseDate >= '",q.start.date,"'
 and o.CloseDate < '",q.end.date,"'
@@ -292,7 +310,7 @@ share.total <- seed %>%
             `Won From Pulled In` = sum(QB_USD[which(StageName == 'Closed Won' & Id %in% pulled.in.ids & Mike_Type == 'Total')],na.rm = T),
             `Won From New Pipe` = sum(QB_USD[which(StageName == 'Closed Won' & Id %in% new.ids & Mike_Type == 'Total')],na.rm = T),
             `Starting Pipeline Lost` = sum(QB_USD[which(StageName == 'Closed Lost' & Id %in% starting.ids & Mike_Type == 'Total'
-                                                        & CloseDate <= q.end.date)],na.rm = T),
+                                                       & CloseDate <= q.end.date)],na.rm = T),
             `Coverage of Closed Won` = `Starting Pipeline` / `Total Won`
   ) %>%
   arrange(Warboard_Category__c,Geo,Product__c)
@@ -313,11 +331,18 @@ range_write(sheet.link,
             'A1',
             col_names = FALSE,
             reformat = FALSE
-)
+            )
 range_write(sheet.link,
             as.data.frame(snapshot.anchor),
             'Outcome Pivot',
             'A2',
+            col_names = FALSE,
+            reformat = FALSE
+            )
+range_write(sheet.link,
+            as.data.frame(rpt.date),
+            'Outcome Pivot',
+            'A3',
             col_names = FALSE,
             reformat = FALSE
 )
