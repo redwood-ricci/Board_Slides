@@ -111,18 +111,20 @@ select
 distinct
 o.Id,
 o.Warboard_Category__c,
-cast(h.CreatedDate as DATE) as moved_date,
-case when cast(h.CreatedDate as DATE) = o.CloseDate and o.StageName = 'Closed Lost' then 'Cleaned Up' else 'cool' end as clean,
+max(cast(h.CreatedDate as DATE)) as moved_date,
+case when max(cast(h.CreatedDate as DATE)) >= o.CloseDate and o.StageName = 'Closed Lost' then 'Clean Up Pulled In'
+when max(h.CreatedDate) < '",snapshot.anchor,"' then 'Clean Up Pulled In' else 'Pulled In' end as clean,
 o.Type,
 o.Region__c,
 o.Account_Segment__c,
 o.Product__c,
-o.ACV_Bookings__c / ct.ConversionRate as QB_USD,
+max(o.ACV_Bookings__c / ct.ConversionRate) as QB_USD,
 o.StageName,
 o.CloseDate,
 o.LeadSource,
 'Pulled In' as Mike_Type
 from `skyvia.Opportunity` o
+-- from `Snapshots.Opportunity_20231030` o
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
 left join `skyvia.OpportunityFieldHistory` h on h.OpportunityId = o.Id
 where o.StageName not in ('Identify','Discovery','Demonstration','Untouched','Temporary','Data Quality') -- ,'Closed Lost'
@@ -133,16 +135,20 @@ and OldValue >= '",q.end.date,"'
 and NewValue <  '",q.end.date,"'
 and NewValue >=  '",q.start.date,"'
 and SAO_Date__c < '",q.end.date,"'
-and CloseDate <= '",q.end.date,"'
+-- and CloseDate <= '",q.end.date,"'
 and CloseDate >= '",q.start.date,"'
 and o.id not in (",string.in.for.query(starting.pipeline$Id),")
+group by 1,2,5,6,7,8,10,11,12,13
 "
 ))
 
-pulled.in <- pulled.in[which(pulled.in$clean != 'Cleaned Up'),]
+pulled.in$Mike_Type <- pulled.in$clean
 pulled.in$moved_date <- NULL
 pulled.in$clean <- NULL
 pulled.in <- make.geo(pulled.in)
+pulled.in$QB_USD[which(pulled.in$Type == 'New Business')] <- round(pulled.in$QB_USD[which(pulled.in$Type == 'New Business')]*0.9002074342,2)
+pulled.in$QB_USD[which(pulled.in$Type == 'Existing Business')] <- round(pulled.in$QB_USD[which(pulled.in$Type == 'Existing Business')]*0.656999057,2)
+
 
 new.pipe <- query.bq(paste0(
   "
