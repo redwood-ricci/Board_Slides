@@ -136,7 +136,7 @@ and field = 'CloseDate'
 and OldValue >= '",q.end.date,"'
 and NewValue <  '",q.end.date,"'
 and NewValue >=  '",q.start.date,"'
-and SAO_Date__c < '",q.end.date,"'
+and o.CreatedDate < '",q.end.date,"'
 -- and CloseDate <= '",q.end.date,"'
 and CloseDate >= '",q.start.date,"'
 and o.id not in (",string.in.for.query(starting.pipeline$Id),")
