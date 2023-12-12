@@ -129,7 +129,7 @@ from `skyvia.Opportunity` o
 -- from `Snapshots.Opportunity_20231030` o
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
 left join `skyvia.OpportunityFieldHistory` h on h.OpportunityId = o.Id
-where o.StageName not in (Temporary','Data Quality') 
+where o.StageName not in ('Temporary','Data Quality') 
 and o.type in ('New Business','Existing Business')
 and o.Test_Account__c = false
 and field = 'CloseDate'
@@ -199,7 +199,7 @@ o.LeadSource,
 'Pushed' as Mike_Type
 from `skyvia.Opportunity` o
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
-where o.StageName not in (Temporary','Data Quality')
+where o.StageName not in ('Temporary','Data Quality')
 and o.type in ('New Business','Existing Business')
 and o.Test_Account__c = false
 and o.SAO_Date__c <= '",snapshot.anchor,"'
