@@ -123,13 +123,14 @@ select
 distinct
 o.Id,
 o.Warboard_Category__c,
-cast(h.CreatedDate as DATE) as moved_date,
-case when cast(h.CreatedDate as DATE) = o.CloseDate and o.StageName = 'Closed Lost' then 'Cleaned Up' else 'cool' end as clean,
+max(cast(h.CreatedDate as DATE)) as moved_date,
+case when max(cast(h.CreatedDate as DATE)) >= o.CloseDate and o.StageName = 'Closed Lost' then 'Clean Up Pulled In'
+when max(h.CreatedDate) < '",snapshot.anchor,"' then 'Clean Up Pulled In' else 'Pulled In' end as clean,
 o.Type,
 o.Region__c,
 o.Account_Segment__c,
 o.Product__c,
-o.ACV_Bookings__c / ct.ConversionRate as QB_USD,
+max(o.ACV_Bookings__c / ct.ConversionRate) as QB_USD,
 o.StageName,
 o.CloseDate,
 o.LeadSource,
@@ -138,7 +139,7 @@ o.SAO_Date__c,
 from `skyvia.Opportunity` o
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
 left join `skyvia.OpportunityFieldHistory` h on h.OpportunityId = o.Id
-where o.StageName not in ('Identify','Discovery','Demonstration','Untouched','Temporary','Data Quality') -- ,'Closed Lost'
+where o.StageName not in ('Temporary','Data Quality') 
 and o.type in ('New Business')
 and o.Test_Account__c = false
 and field = 'CloseDate'
@@ -149,6 +150,7 @@ and o.CreatedDate < '",q.end.date,"'
 and CloseDate <= '",q.end.date,"'
 and CloseDate >= '",q.start.date,"'
 and o.id not in (",string.in.for.query(starting.pipeline$Id),")
+group by 1,2,5,6,7,8,10,11,12,13
 "
 ))
 
