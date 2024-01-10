@@ -5,16 +5,21 @@ library(lubridate)
 library(bigQueryR)
 library(googlesheets4)
 
-sheet.link <- "https://docs.google.com/spreadsheets/d/12R5q3IWXxxHb8kZ4RHU6zX4GEpz2bk9pMkf-rgbHGI0/edit#gid=0"
+sheet.link <- "https://docs.google.com/spreadsheets/d/1w5J_iSXnEt2ZXopvsbbdIMvJZ3eLWDeZY51sRb0kaUs/edit#gid=0"
+
+# Q1
+# rpt.date <-    as.Date('2023-12-31')
+# snapshot.anchor <- '2023-10-11'
+
+# Q2
+# rpt.date <-    as.Date('2023-06-30')
+# snapshot.anchor <- '2023-04-14'
 
 # Q3 
-# rpt.date is the date you want the report to reflect for Total Won & the end of the report
-#rpt.date <- as.Date('2023-11-27')
-rpt.date <- Sys.Date()
-snapshot.anchor <- '2023-11-09'
-# snapshot.anchor = last pipeline meeting start date
+rpt.date <-    as.Date('2023-09-30')
+snapshot.anchor <- '2023-07-19'
 
-# Q4
+# # Q4
 # rpt.date <-    Sys.Date()
 # snapshot.anchor <- '2023-10-11'
 # snapshot anchor is the date the quarter starting pipline should start
@@ -37,12 +42,12 @@ starting.pipeline <- query.bq(
     "
 select 
 h.Id,
-o.Warboard_Category__c,
-o.Type,
+h.Warboard_Category__c,
+h.Type,
 o.Region__c,
 o.Account_Segment__c,
 o.Product__c,
-o.ACV_Bookings__c / ct.ConversionRate as QB_USD,
+h.qb_usd as QB_USD,
 o.StageName,
 o.CloseDate,
 o.LeadSource,
@@ -50,7 +55,7 @@ o.LeadSource,
 from `R_Data.Opportunity_History` h
 left join `skyvia.Opportunity` o on h.Id = o.Id
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
-where h.StageName not in ('Temporary','Data Quality')
+where (h.StageName not in ('Temporary','Data Quality'))
 and h.type in ('New Business','Existing Business')
 and cast(Snapshot_Time as date) = '",snapshot.anchor,"'
 and o.Test_Account__c = false
@@ -129,9 +134,10 @@ from `skyvia.Opportunity` o
 -- from `Snapshots.Opportunity_20231030` o
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
 left join `skyvia.OpportunityFieldHistory` h on h.OpportunityId = o.Id
-where o.StageName not in ('Temporary','Data Quality') 
+where o.StageName not in ('Temporary','Data Quality')
 and o.type in ('New Business','Existing Business')
 and o.Test_Account__c = false
+and o.SAO_Date__c < '",q.end.date,"'
 and field = 'CloseDate'
 and OldValue >= '",q.end.date,"'
 and NewValue <  '",q.end.date,"'
@@ -241,7 +247,10 @@ total.opps <- make.geo(total.opps)
 all.known.opps <- unique(c(pulled.in$Id,new.pipe$Id,starting.pipeline$Id))
 
 ghost.found <- total.opps[which(!(total.opps$Id %in% all.known.opps)),]
-ghost.found$Mike_Type <- 'Starting Pipe'
+ghost.found$Mike_Type <- 'New Pipe'
+if(nrow(ghost.found) > 0){
+  warning('Ghost opps found in total opps')
+}
 starting.pipeline <- bind_rows(starting.pipeline,ghost.found)
 
 
@@ -265,6 +274,23 @@ total.opps %>%
   summarise(won = sum(QB_USD,na.rm = T),
             num = length(Id))
 
+
+enrich.data <- query.bq(paste0(
+  "
+  select
+o.id as Id,
+ur.Name as User_Role,
+case when lower(ur.Name) like '%customer%' then 'CAM'
+     when lower(ur.Name) like '%strategic%' then 'SAM'
+     else 'Other' end as CAM_or_SAM
+from `skyvia.Opportunity` o
+left join `skyvia.User` u on o.OwnerId = u.Id
+left join `skyvia.UserRole` ur on u.UserRoleId = ur.Id
+where o.id in (
+",string.in.for.query(seed$Id),"  
+)"
+))
+seed <- merge(seed,enrich.data,by = 'Id',all.x = T)
 # share.product <- seed %>%
 #   group_by(Geo,Warboard_Category__c,Product__c) %>%
 #   summarise(`Starting Pipeline` = sum(QB_USD[which(Mike_Type == 'Starting Pipe')],na.rm = T),
@@ -287,7 +313,8 @@ total.opps %>%
 #             'Outcome')
 
 share.total <- seed %>%
-  group_by(Geo,Warboard_Category__c,Product__c,Account_Segment__c,LeadSource,Type) %>%
+  group_by(Geo,Warboard_Category__c,Product__c,Account_Segment__c,LeadSource,Type,
+           CAM_or_SAM) %>%
   summarise(`Starting Pipeline` = sum(QB_USD[which(Mike_Type == 'Starting Pipe')],na.rm = T),
             `New Pipe` = sum(QB_USD[which(Mike_Type == 'New Pipe')],na.rm = T),
             `Pulled In` = sum(QB_USD[which(Mike_Type == 'Pulled In')],na.rm = T),
@@ -307,7 +334,7 @@ share.total$`Coverage of Closed Won`[!is.finite(share.total$`Coverage of Closed 
 
 write_sheet_keep_sheet_format(share.total,
                               sheet.link,
-                              'Outcome total Pivot Data')
+                              'Pivot Data')
 
 write_sheet_keep_sheet_format(seed,
                               sheet.link,
@@ -327,6 +354,12 @@ range_write(sheet.link,
             col_names = FALSE,
             reformat = FALSE
 )
-
+range_write(sheet.link,
+            as.data.frame(Sys.time()),
+            'Outcome Pivot',
+            'a4',
+            col_names = FALSE,
+            reformat = FALSE
+)
 
 
