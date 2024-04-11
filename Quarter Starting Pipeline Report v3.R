@@ -16,16 +16,14 @@ sheet.link <- "https://docs.google.com/spreadsheets/d/1w5J_iSXnEt2ZXopvsbbdIMvJZ
 # snapshot.anchor <- '2023-04-14'
 
 # Q3 
-<<<<<<< HEAD
 # rpt.date is the date you want the report to reflect for Total Won & the end of the report
 #rpt.date <- as.Date('2023-11-27')
 # rpt.date <- Sys.Date()
 # snapshot.anchor <- '2023-04-10'
 # snapshot.anchor = last pipeline meeting start date
-=======
+
 rpt.date <-    as.Date('2023-09-30')
 snapshot.anchor <- '2023-07-19'
->>>>>>> 410fa4386f45b2b1ff47e5a8ca9fd6462bb4cd57
 
 # # Q4
 # rpt.date <-    Sys.Date()
@@ -60,11 +58,7 @@ h.Type,
 o.Region__c,
 o.Account_Segment__c,
 o.Product__c,
-<<<<<<< HEAD
 round(coalesce(cast(h.Software_USD as int64),cast(h.Expansion_USD as int64),cast(h.qb_usd as int64)),2) as QB_USD,
-=======
-h.qb_usd as QB_USD,
->>>>>>> 410fa4386f45b2b1ff47e5a8ca9fd6462bb4cd57
 o.StageName,
 o.CloseDate,
 o.LeadSource,
@@ -72,13 +66,8 @@ o.LeadSource,
 from `R_Data.Opportunity_History` h
 left join `skyvia.Opportunity` o on h.Id = o.Id
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
-<<<<<<< HEAD
 where h.StageName not in ('Temporary','Data Quality')
 and h.type in ('New Business','Existing Business','Expansion')
-=======
-where (h.StageName not in ('Temporary','Data Quality'))
-and h.type in ('New Business','Existing Business')
->>>>>>> 410fa4386f45b2b1ff47e5a8ca9fd6462bb4cd57
 and cast(Snapshot_Time as date) = '",snapshot.anchor,"'
 and o.Test_Account__c = false
 and o.SAO_Date__c <= '",snapshot.anchor,"'
@@ -156,13 +145,8 @@ from `skyvia.Opportunity` o
 -- from `Snapshots.Opportunity_20231030` o
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
 left join `skyvia.OpportunityFieldHistory` h on h.OpportunityId = o.Id
-<<<<<<< HEAD
 where o.StageName not in ('Temporary','Data Quality') 
 and o.type in ('New Business','Existing Business','Expansion')
-=======
-where o.StageName not in ('Temporary','Data Quality')
-and o.type in ('New Business','Existing Business')
->>>>>>> 410fa4386f45b2b1ff47e5a8ca9fd6462bb4cd57
 and o.Test_Account__c = false
 and o.SAO_Date__c < '",q.end.date,"'
 and field = 'CloseDate'
@@ -277,12 +261,9 @@ all.known.opps <- unique(c(pulled.in$Id,new.pipe$Id,starting.pipeline$Id))
 
 ghost.found <- total.opps[which(!(total.opps$Id %in% all.known.opps)),]
 ghost.found$Mike_Type <- 'New Pipe'
-<<<<<<< HEAD
-=======
 if(nrow(ghost.found) > 0){
   warning('Ghost opps found in total opps')
 }
->>>>>>> 410fa4386f45b2b1ff47e5a8ca9fd6462bb4cd57
 starting.pipeline <- bind_rows(starting.pipeline,ghost.found)
 
 
