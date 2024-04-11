@@ -22,17 +22,22 @@ sheet.link <- "https://docs.google.com/spreadsheets/d/1w5J_iSXnEt2ZXopvsbbdIMvJZ
 # snapshot.anchor <- '2023-04-10'
 # snapshot.anchor = last pipeline meeting start date
 
-rpt.date <-    as.Date('2023-09-30')
-snapshot.anchor <- '2023-07-19'
+# rpt.date <-    as.Date('2023-09-30')
+# snapshot.anchor <- '2023-07-19'
 
 # # Q4
 # rpt.date <-    Sys.Date()
 # snapshot.anchor <- '2023-10-11'
 # snapshot anchor is the date the quarter starting pipline should start
 
-# Q1
-rpt.date <-    as.Date('2024-03-31')
-snapshot.anchor <- '2024-01-09'
+# Q1 2024
+# rpt.date <-    as.Date('2024-03-31')
+# snapshot.anchor <- '2024-01-09'
+
+# Q2 starting pipe
+rpt.date <-    Sys.Date()
+snapshot.anchor <- '2024-04-11'
+
 # snapshot anchor is the date the quarter starting pipline should start
 
 
@@ -58,7 +63,7 @@ h.Type,
 o.Region__c,
 o.Account_Segment__c,
 o.Product__c,
-round(coalesce(cast(h.Software_USD as int64),cast(h.Expansion_USD as int64),cast(h.qb_usd as int64)),2) as QB_USD,
+round(coalesce(cast(h.Software_USD as float64),cast(h.Expansion_USD as float64),cast(h.qb_usd as float64)),2) as QB_USD,
 o.StageName,
 o.CloseDate,
 o.LeadSource,
