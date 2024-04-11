@@ -304,6 +304,10 @@ where o.id in (
 )"
 ))
 seed <- merge(seed,enrich.data,by = 'Id',all.x = T)
+
+# done to mark the Expansion children as Existing Business
+seed$Type_Smooth <- seed$Type
+seed$Type_Smooth[which(seed$Type_Smooth == 'Expansion')] <- 'Existing Business'
 # share.product <- seed %>%
 #   group_by(Geo,Warboard_Category__c,Product__c) %>%
 #   summarise(`Starting Pipeline` = sum(QB_USD[which(Mike_Type == 'Starting Pipe')],na.rm = T),
@@ -326,7 +330,7 @@ seed <- merge(seed,enrich.data,by = 'Id',all.x = T)
 #             'Outcome')
 
 share.total <- seed %>%
-  group_by(Geo,Warboard_Category__c,Product__c,Account_Segment__c,LeadSource,Type,
+  group_by(Geo,Warboard_Category__c,Product__c,Account_Segment__c,LeadSource,Type_Smooth,
            CAM_or_SAM) %>%
   summarise(`Starting Pipeline` = sum(QB_USD[which(Mike_Type == 'Starting Pipe')],na.rm = T),
             `New Pipe` = sum(QB_USD[which(Mike_Type == 'New Pipe')],na.rm = T),
