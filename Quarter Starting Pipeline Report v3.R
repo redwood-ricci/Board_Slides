@@ -10,13 +10,18 @@ sheet.link <- "https://docs.google.com/spreadsheets/d/12R5q3IWXxxHb8kZ4RHU6zX4GE
 # Q3 
 # rpt.date is the date you want the report to reflect for Total Won & the end of the report
 #rpt.date <- as.Date('2023-11-27')
-rpt.date <- Sys.Date()
-snapshot.anchor <- '2023-11-09'
+# rpt.date <- Sys.Date()
+# snapshot.anchor <- '2023-04-10'
 # snapshot.anchor = last pipeline meeting start date
 
 # Q4
 # rpt.date <-    Sys.Date()
 # snapshot.anchor <- '2023-10-11'
+# snapshot anchor is the date the quarter starting pipline should start
+
+# Q1
+rpt.date <-    as.Date('2024-03-31')
+snapshot.anchor <- '2024-01-09'
 # snapshot anchor is the date the quarter starting pipline should start
 
 
@@ -42,7 +47,7 @@ o.Type,
 o.Region__c,
 o.Account_Segment__c,
 o.Product__c,
-o.ACV_Bookings__c / ct.ConversionRate as QB_USD,
+round(coalesce(cast(h.Software_USD as int64),cast(h.Expansion_USD as int64),cast(h.qb_usd as int64)),2) as QB_USD,
 o.StageName,
 o.CloseDate,
 o.LeadSource,
@@ -51,7 +56,7 @@ from `R_Data.Opportunity_History` h
 left join `skyvia.Opportunity` o on h.Id = o.Id
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
 where h.StageName not in ('Temporary','Data Quality')
-and h.type in ('New Business','Existing Business')
+and h.type in ('New Business','Existing Business','Expansion')
 and cast(Snapshot_Time as date) = '",snapshot.anchor,"'
 and o.Test_Account__c = false
 and o.SAO_Date__c <= '",snapshot.anchor,"'
@@ -120,7 +125,7 @@ o.Type,
 o.Region__c,
 o.Account_Segment__c,
 o.Product__c,
-max(o.ACV_Bookings__c / ct.ConversionRate) as QB_USD,
+max(coalesce(o.Software_Qualified_Bookings__c,o.RW_Expansion_Amount__c) / ct.ConversionRate) as QB_USD,
 o.StageName,
 o.CloseDate,
 o.LeadSource,
@@ -130,7 +135,7 @@ from `skyvia.Opportunity` o
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
 left join `skyvia.OpportunityFieldHistory` h on h.OpportunityId = o.Id
 where o.StageName not in ('Temporary','Data Quality') 
-and o.type in ('New Business','Existing Business')
+and o.type in ('New Business','Existing Business','Expansion')
 and o.Test_Account__c = false
 and field = 'CloseDate'
 and OldValue >= '",q.end.date,"'
@@ -139,6 +144,7 @@ and NewValue >=  '",q.start.date,"'
 and o.CreatedDate < '",q.end.date,"'
 -- and CloseDate <= '",q.end.date,"'
 and CloseDate >= '",q.start.date,"'
+and CloseDate < '",q.end.date,"'
 and o.id not in (",string.in.for.query(starting.pipeline$Id),")
 group by 1,2,5,6,7,8,10,11,12,13
 "
@@ -148,8 +154,9 @@ pulled.in$Mike_Type <- pulled.in$clean
 pulled.in$moved_date <- NULL
 pulled.in$clean <- NULL
 pulled.in <- make.geo(pulled.in)
-pulled.in$QB_USD[which(pulled.in$Type == 'New Business')] <- round(pulled.in$QB_USD[which(pulled.in$Type == 'New Business')]*0.9002074342,2)
-pulled.in$QB_USD[which(pulled.in$Type == 'Existing Business')] <- round(pulled.in$QB_USD[which(pulled.in$Type == 'Existing Business')]*0.656999057,2)
+# used for making an adjustment to pulled in
+# pulled.in$QB_USD[which(pulled.in$Type == 'New Business')] <- round(pulled.in$QB_USD[which(pulled.in$Type == 'New Business')]*0.9002074342,2)
+# pulled.in$QB_USD[which(pulled.in$Type == 'Existing Business')] <- round(pulled.in$QB_USD[which(pulled.in$Type == 'Existing Business')]*0.656999057,2)
 
 
 new.pipe <- query.bq(paste0(
@@ -161,7 +168,7 @@ o.Type,
 o.Region__c,
 o.Account_Segment__c,
 o.Product__c,
-o.ACV_Bookings__c / ct.ConversionRate as QB_USD,
+coalesce(o.Software_Qualified_Bookings__c,o.RW_Expansion_Amount__c) / ct.ConversionRate as QB_USD,
 o.StageName,
 o.CloseDate,
 o.LeadSource,
@@ -169,7 +176,7 @@ o.LeadSource,
 from `skyvia.Opportunity` o
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
 where o.StageName not in ('Temporary','Data Quality')
-and o.type in ('New Business','Existing Business')
+and o.type in ('New Business','Existing Business','Expansion')
 and o.Test_Account__c = false
 and o.SAO_Date__c >= '",q.start.date,"'
 and o.SAO_Date__c < '",q.end.date,"'
@@ -192,7 +199,7 @@ o.Type,
 o.Region__c,
 o.Account_Segment__c,
 o.Product__c,
-o.ACV_Bookings__c / ct.ConversionRate as QB_USD,
+coalesce(o.Software_Qualified_Bookings__c,o.RW_Expansion_Amount__c) / ct.ConversionRate as QB_USD,
 o.StageName,
 o.CloseDate,
 o.LeadSource,
@@ -200,7 +207,7 @@ o.LeadSource,
 from `skyvia.Opportunity` o
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
 where o.StageName not in ('Temporary','Data Quality')
-and o.type in ('New Business','Existing Business')
+and o.type in ('New Business','Existing Business','Expansion')
 and o.Test_Account__c = false
 and o.SAO_Date__c <= '",snapshot.anchor,"'
 and o.CloseDate > '",q.end.date,"'
@@ -220,7 +227,7 @@ o.Type,
 o.Region__c,
 o.Account_Segment__c,
 o.Product__c,
-o.ACV_Bookings__c / ct.ConversionRate as QB_USD,
+coalesce(o.Software_Qualified_Bookings__c,o.RW_Expansion_Amount__c) / ct.ConversionRate as QB_USD,
 o.StageName,
 o.CloseDate,
 o.LeadSource,
@@ -229,7 +236,7 @@ from `skyvia.Opportunity` o
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
 where (o.StageName = 'Closed Won' OR SAO_Date__c is not null)
 and o.StageName not in ('Temporary','Data Quality')
-and o.type in ('New Business','Existing Business')
+and o.type in ('New Business','Existing Business','Expansion')
 and o.Test_Account__c = FALSE
 and o.CloseDate >= '",q.start.date,"'
 and o.CloseDate < '",q.end.date,"'
@@ -241,7 +248,7 @@ total.opps <- make.geo(total.opps)
 all.known.opps <- unique(c(pulled.in$Id,new.pipe$Id,starting.pipeline$Id))
 
 ghost.found <- total.opps[which(!(total.opps$Id %in% all.known.opps)),]
-ghost.found$Mike_Type <- 'Starting Pipe'
+ghost.found$Mike_Type <- 'New Pipe'
 starting.pipeline <- bind_rows(starting.pipeline,ghost.found)
 
 
