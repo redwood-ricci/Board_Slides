@@ -271,6 +271,8 @@ if(nrow(ghost.found) > 0){
 }
 starting.pipeline <- bind_rows(starting.pipeline,ghost.found)
 
+# needs this new pipe as date to run when new pipe is blank
+new.pipe$CloseDate <- as.Date(new.pipe$CloseDate)
 
 seed <- bind_rows(new.pipe,pulled.in,pushed,starting.pipeline,total.opps)
 
