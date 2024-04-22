@@ -31,12 +31,12 @@ sheet.link <- "https://docs.google.com/spreadsheets/d/1w5J_iSXnEt2ZXopvsbbdIMvJZ
 # snapshot anchor is the date the quarter starting pipline should start
 
 # Q1 2024
-# rpt.date <-    as.Date('2024-03-31')
-# snapshot.anchor <- '2024-01-09'
+rpt.date <-    as.Date('2024-03-31')
+snapshot.anchor <- '2024-01-09'
 
 # Q2 starting pipe
-rpt.date <-    Sys.Date()
-snapshot.anchor <- '2024-04-11'
+# rpt.date <-    Sys.Date()
+# snapshot.anchor <- '2024-04-11'
 
 # snapshot anchor is the date the quarter starting pipline should start
 
@@ -302,7 +302,8 @@ o.id as Id,
 ur.Name as User_Role,
 case when lower(ur.Name) like '%customer%' then 'CAM'
      when lower(ur.Name) like '%strategic%' then 'SAM'
-     else 'Other' end as CAM_or_SAM
+     else 'AE' end as CAM_or_SAM
+,o.Expansion_Category__c as `Expansion Category`
 from `skyvia.Opportunity` o
 left join `skyvia.User` u on o.OwnerId = u.Id
 left join `skyvia.UserRole` ur on u.UserRoleId = ur.Id
@@ -338,7 +339,7 @@ seed$Type_Smooth[which(seed$Type_Smooth == 'Expansion')] <- 'Existing Business'
 
 share.total <- seed %>%
   group_by(Geo,Warboard_Category__c,Product__c,Account_Segment__c,LeadSource,Type_Smooth,
-           CAM_or_SAM) %>%
+           CAM_or_SAM,`Expansion Category`) %>%
   summarise(`Starting Pipeline` = sum(QB_USD[which(Mike_Type == 'Starting Pipe')],na.rm = T),
             `New Pipe` = sum(QB_USD[which(Mike_Type == 'New Pipe')],na.rm = T),
             `Pulled In` = sum(QB_USD[which(Mike_Type == 'Pulled In')],na.rm = T),
