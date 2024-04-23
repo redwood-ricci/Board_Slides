@@ -31,12 +31,12 @@ sheet.link <- "https://docs.google.com/spreadsheets/d/1w5J_iSXnEt2ZXopvsbbdIMvJZ
 # snapshot anchor is the date the quarter starting pipline should start
 
 # Q1 2024
-rpt.date <-    as.Date('2024-03-31')
-snapshot.anchor <- '2024-01-09'
+# rpt.date <-    as.Date('2024-03-31')
+# snapshot.anchor <- '2024-01-09'
 
 # Q2 starting pipe
-# rpt.date <-    Sys.Date()
-# snapshot.anchor <- '2024-04-11'
+rpt.date <-    Sys.Date()
+snapshot.anchor <- '2024-04-11'
 
 # snapshot anchor is the date the quarter starting pipline should start
 
@@ -57,6 +57,7 @@ starting.pipeline <- query.bq(
   paste0(
     "
 select 
+distinct
 h.Id,
 h.Warboard_Category__c,
 h.Type,
@@ -153,7 +154,7 @@ left join `skyvia.OpportunityFieldHistory` h on h.OpportunityId = o.Id
 where o.StageName not in ('Temporary','Data Quality') 
 and o.type in ('New Business','Existing Business','Expansion')
 and o.Test_Account__c = false
-and o.SAO_Date__c < '",q.end.date,"'
+and o.SAO_Date__c < '",q.start.date,"'
 and field = 'CloseDate'
 and OldValue >= '",q.end.date,"'
 and NewValue <  '",q.end.date,"'
