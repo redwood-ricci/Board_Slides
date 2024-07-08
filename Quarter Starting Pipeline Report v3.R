@@ -34,9 +34,14 @@ sheet.link <- "https://docs.google.com/spreadsheets/d/1w5J_iSXnEt2ZXopvsbbdIMvJZ
 # rpt.date <-    as.Date('2024-03-31')
 # snapshot.anchor <- '2024-01-09'
 
-# Q2 starting pipe
-rpt.date <-    Sys.Date()
+# Q2 2024 starting pipe
+rpt.date <-    as.Date('2024-06-30')
 snapshot.anchor <- '2024-04-11'
+
+# Q3 2024 starting pipe
+# rpt.date <-    Sys.Date()
+# snapshot.anchor <- as.character(Sys.Date())
+
 
 # snapshot anchor is the date the quarter starting pipline should start
 
@@ -72,7 +77,7 @@ o.LeadSource,
 from `R_Data.Opportunity_History` h
 left join `skyvia.Opportunity` o on h.Id = o.Id
 left join `skyvia.CurrencyType` ct on o.CurrencyIsoCode = ct.IsoCode
-where h.StageName not in ('Temporary','Data Quality')
+where h.StageName not in ('Temporary','Data Quality','Closed Lost')
 and h.type in ('New Business','Existing Business','Expansion')
 and cast(Snapshot_Time as date) = '",snapshot.anchor,"'
 and o.Test_Account__c = false
