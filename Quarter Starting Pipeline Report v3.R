@@ -35,12 +35,12 @@ sheet.link <- "https://docs.google.com/spreadsheets/d/1w5J_iSXnEt2ZXopvsbbdIMvJZ
 # snapshot.anchor <- '2024-01-09'
 
 # Q2 2024 starting pipe
-rpt.date <-    as.Date('2024-06-30')
-snapshot.anchor <- '2024-04-11'
+# rpt.date <-    as.Date('2024-06-30')
+# snapshot.anchor <- '2024-04-11'
 
 # Q3 2024 starting pipe
-# rpt.date <-    Sys.Date()
-# snapshot.anchor <- as.character(Sys.Date())
+rpt.date <-    Sys.Date()
+snapshot.anchor <- as.character(Sys.Date() - days(1))
 
 
 # snapshot anchor is the date the quarter starting pipline should start
@@ -81,7 +81,7 @@ where h.StageName not in ('Temporary','Data Quality','Closed Lost')
 and h.type in ('New Business','Existing Business','Expansion')
 and cast(Snapshot_Time as date) = '",snapshot.anchor,"'
 and o.Test_Account__c = false
-and o.SAO_Date__c <= '",snapshot.anchor,"'
+and h.SAO_Date__c <= '",snapshot.anchor,"'
 and h.CloseDate >= '",q.start.date,"'
 and h.CloseDate < '",q.end.date,"'
     "
@@ -279,6 +279,7 @@ starting.pipeline <- bind_rows(starting.pipeline,ghost.found)
 
 # needs this new pipe as date to run when new pipe is blank
 new.pipe$CloseDate <- as.Date(new.pipe$CloseDate)
+pushed$CloseDate <- as.Date(pushed$CloseDate)
 
 seed <- bind_rows(new.pipe,pulled.in,pushed,starting.pipeline,total.opps)
 
